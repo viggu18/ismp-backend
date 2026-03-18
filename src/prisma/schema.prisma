@@ -1,0 +1,477 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  HIRER
+  INFLUENCER
+}
+
+enum Platform {
+  INSTAGRAM
+  YOUTUBE
+  JOSH
+  MOJ
+  SHARECHAT
+}
+
+enum ContentType {
+  REEL
+  STATIC_POST
+  STORY
+  YOUTUBE_VIDEO
+  SHORT
+  PODCAST
+}
+
+enum CampaignStatus {
+  DRAFT
+  OPEN
+  PAUSED
+  CLOSED
+  COMPLETED
+}
+
+enum CampaignVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  REJECTED
+  OFFERED
+  HIRED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COUNTERED
+  EXPIRED
+}
+
+enum ContentSubmissionStatus {
+  SUBMITTED
+  REVISION_REQUESTED
+  APPROVED
+}
+
+enum PaymentStatus {
+  PENDING
+  IN_ESCROW
+  RELEASED
+  REFUNDED
+  EXTERNAL
+}
+
+enum ReviewTarget {
+  HIRER
+  INFLUENCER
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED
+  OFFER_SENT
+  OFFER_ACCEPTED
+  OFFER_DECLINED
+  OFFER_COUNTERED
+  MESSAGE_RECEIVED
+  CONTENT_SUBMITTED
+  REVISION_REQUESTED
+  CONTENT_APPROVED
+  PAYMENT_RELEASED
+  CAMPAIGN_MATCH
+  REVIEW_RECEIVED
+}
+
+// ─────────────────────────────────────────────
+// USER  (shared base for both roles)
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  phone         String    @unique
+  email         String?   @unique
+  passwordHash  String?
+  role          Role
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  hirerProfile      HirerProfile?
+  influencerProfile InfluencerProfile?
+  sentMessages      Message[]          @relation("SentMessages")
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// HIRER PROFILE
+// ─────────────────────────────────────────────
+
+model HirerProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName   String
+  logoUrl       String?
+  industry      String?
+  website       String?
+  description   String?
+  gstNumber     String?
+  isGstVerified Boolean  @default(false)
+  city          String?
+  state         String?
+
+  // Aggregated from reviews
+  averageRating Float?
+  totalReviews  Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campaigns     Campaign[]
+  reviews       Review[]   @relation("HirerReviews")
+
+  @@map("hirer_profiles")
+}
+
+// ─────────────────────────────────────────────
+// INFLUENCER PROFILE
+// ─────────────────────────────────────────────
+
+model InfluencerProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  displayName     String
+  avatarUrl       String?
+  bio             String?
+  city            String?
+  state           String?
+  languages       String[]  // ["Hindi", "Kannada", "English"]
+  niches          String[]  // ["Fashion", "Food", "Tech"]
+  gender          String?
+  isAvailable     Boolean   @default(true)
+  isVerified      Boolean   @default(false)
+
+  // Aggregated stats (refreshed periodically)
+  totalFollowers  Int       @default(0)
+  avgEngagement   Float?
+
+  // Aggregated from reviews
+  averageRating   Float?
+  totalReviews    Int       @default(0)
+  profileViews    Int       @default(0)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  socialAccounts  SocialAccount[]
+  ratecards       RateCard[]
+  applications    Application[]
+  offers          Offer[]
+  reviews         Review[]        @relation("InfluencerReviews")
+
+  @@map("influencer_profiles")
+}
+
+// ─────────────────────────────────────────────
+// SOCIAL ACCOUNT  (one per platform per influencer)
+// ─────────────────────────────────────────────
+
+model SocialAccount {
+  id                  String            @id @default(uuid())
+  influencerProfileId String
+  influencerProfile   InfluencerProfile @relation(fields: [influencerProfileId], references: [id], onDelete: Cascade)
+
+  platform            Platform
+  handle              String            // @username or channel name
+  profileUrl          String?
+  followerCount       Int               @default(0)
+  engagementRate      Float?
+  isVerified          Boolean           @default(false)   // verified by your team
+  lastSyncedAt        DateTime?
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([influencerProfileId, platform])
+  @@map("social_accounts")
+}
+
+// ─────────────────────────────────────────────
+// RATE CARD  (price per content type per platform)
+// ─────────────────────────────────────────────
+
+model RateCard {
+  id                  String            @id @default(uuid())
+  influencerProfileId String
+  influencerProfile   InfluencerProfile @relation(fields: [influencerProfileId], references: [id], onDelete: Cascade)
+
+  platform            Platform
+  contentType         ContentType
+  priceInr            Float             // price in INR
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([influencerProfileId, platform, contentType])
+  @@map("rate_cards")
+}
+
+// ─────────────────────────────────────────────
+// CAMPAIGN
+// ─────────────────────────────────────────────
+
+model Campaign {
+  id              String             @id @default(uuid())
+  hirerId         String
+  hirer           HirerProfile       @relation(fields: [hirerId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String
+  platforms       Platform[]
+  contentTypes    ContentType[]
+  niche           String?
+  budgetMin       Float?
+  budgetMax       Float?
+  timeline        String?            // e.g. "2 weeks"
+  startDate       DateTime?
+  deadlineDate    DateTime?
+  deliverablesCount Int              @default(1)
+  languages       String[]
+  minFollowers    Int?
+  targetCities    String[]
+  targetGender    String?
+
+  status          CampaignStatus     @default(DRAFT)
+  visibility      CampaignVisibility @default(PUBLIC)
+
+  briefUrl        String?            // uploaded PDF
+  briefText       String?            // or structured text brief
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  applications    Application[]
+  offers          Offer[]
+
+  @@map("campaigns")
+}
+
+// ─────────────────────────────────────────────
+// APPLICATION  (influencer applies to a campaign)
+// ─────────────────────────────────────────────
+
+model Application {
+  id                  String            @id @default(uuid())
+  campaignId          String
+  campaign            Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  influencerProfileId String
+  influencerProfile   InfluencerProfile @relation(fields: [influencerProfileId], references: [id], onDelete: Cascade)
+
+  pitchNote           String?           // why they're a good fit
+  proposedRate        Float?            // influencer's quoted rate
+  status              ApplicationStatus @default(PENDING)
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  offer               Offer?
+
+  @@unique([campaignId, influencerProfileId])
+  @@map("applications")
+}
+
+// ─────────────────────────────────────────────
+// OFFER  (hirer sends formal offer to influencer)
+// ─────────────────────────────────────────────
+
+model Offer {
+  id                  String            @id @default(uuid())
+  campaignId          String
+  campaign            Campaign          @relation(fields: [campaignId], references: [id])
+  applicationId       String?           @unique   // null if hirer invited directly
+  application         Application?      @relation(fields: [applicationId], references: [id])
+  influencerProfileId String
+  influencerProfile   InfluencerProfile @relation(fields: [influencerProfileId], references: [id], onDelete: Cascade)
+
+  agreedRate          Float
+  deliverables        String            // e.g. "2 Reels + 3 Stories"
+  contentDeadline     DateTime
+  paymentTerms        String?           // notes on payment
+  revisionLimit       Int               @default(2)
+
+  status              OfferStatus       @default(PENDING)
+  counterRate         Float?            // influencer's counter price
+  counterNote         String?
+
+  acceptedAt          DateTime?
+  declinedAt          DateTime?
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  conversation        Conversation?
+  contentSubmissions  ContentSubmission[]
+  payment             Payment?
+
+  @@map("offers")
+}
+
+// ─────────────────────────────────────────────
+// CONTENT SUBMISSION  (influencer submits draft)
+// ─────────────────────────────────────────────
+
+model ContentSubmission {
+  id              String                  @id @default(uuid())
+  offerId         String
+  offer           Offer                   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  submissionUrl   String                  // draft link or file URL
+  note            String?                 // optional note from influencer
+  revisionNumber  Int                     @default(1)
+  status          ContentSubmissionStatus @default(SUBMITTED)
+  revisionNote    String?                 // hirer's revision feedback
+  approvedAt      DateTime?
+
+  // Final publish confirmation
+  publishedUrl    String?                 // live post link
+  publishedAt     DateTime?
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@map("content_submissions")
+}
+
+// ─────────────────────────────────────────────
+// CONVERSATION + MESSAGE  (in-platform chat)
+// ─────────────────────────────────────────────
+
+model Conversation {
+  id        String    @id @default(uuid())
+  offerId   String    @unique
+  offer     Offer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages  Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  content        String
+  attachmentUrl  String?      // optional file attachment
+  isRead         Boolean      @default(false)
+  readAt         DateTime?
+
+  createdAt      DateTime     @default(now())
+
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// PAYMENT
+// ─────────────────────────────────────────────
+
+model Payment {
+  id                String        @id @default(uuid())
+  offerId           String        @unique
+  offer             Offer         @relation(fields: [offerId], references: [id])
+
+  amountInr         Float
+  platformFeeInr    Float         // 8-12% commission
+  influencerPayout  Float         // amount after fee
+
+  status            PaymentStatus @default(PENDING)
+
+  // Razorpay fields
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+
+  escrowLockedAt    DateTime?
+  releasedAt        DateTime?
+
+  invoiceUrl        String?       // auto-generated invoice
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// REVIEW  (mutual post-campaign ratings)
+// ─────────────────────────────────────────────
+
+model Review {
+  id                  String            @id @default(uuid())
+  offerId             String
+  reviewTarget        ReviewTarget      // who is being reviewed
+
+  // Reviewer can be either side
+  hirerProfileId      String?
+  hirerProfile        HirerProfile?     @relation("HirerReviews", fields: [hirerProfileId], references: [id])
+  influencerProfileId String?
+  influencerProfile   InfluencerProfile? @relation("InfluencerReviews", fields: [influencerProfileId], references: [id])
+
+  rating              Float             // 1 to 5
+  comment             String?
+
+  // Specific rating dimensions
+  communicationRating Float?
+  qualityRating       Float?            // for influencer: content quality
+  timelinessRating    Float?
+  paymentRating       Float?            // for hirer: payment speed
+
+  createdAt           DateTime          @default(now())
+
+  @@unique([offerId, reviewTarget])
+  @@map("reviews")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type       NotificationType
+  title      String
+  body       String
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+  metadata   Json?            // e.g. { campaignId, offerId } for deep links
+
+  createdAt  DateTime         @default(now())
+
+  @@map("notifications")
+}
