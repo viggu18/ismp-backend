@@ -7,6 +7,16 @@ exports.env = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 const zod_1 = require("zod");
 dotenv_1.default.config();
+const parseBooleanEnv = (value, defaultValue) => {
+    if (value === undefined || value === null || value === "") {
+        return defaultValue;
+    }
+    if (typeof value === "boolean") {
+        return value;
+    }
+    const normalizedValue = String(value).trim().toLowerCase();
+    return ["1", "true", "yes", "on"].includes(normalizedValue);
+};
 const envSchema = zod_1.z.object({
     PORT: zod_1.z.coerce.number().int().positive().default(3001),
     NODE_ENV: zod_1.z.enum(["development", "test", "production"]).default("development"),
@@ -20,6 +30,10 @@ const envSchema = zod_1.z.object({
     SUPABASE_SERVICE_ROLE_KEY: zod_1.z.string().optional().default(""),
     RAZORPAY_KEY_ID: zod_1.z.string().optional().default(""),
     RAZORPAY_KEY_SECRET: zod_1.z.string().optional().default(""),
+    REQUEST_LOGGER_ENABLED: zod_1.z
+        .union([zod_1.z.string(), zod_1.z.boolean()])
+        .optional()
+        .transform((value) => parseBooleanEnv(value, true)),
 });
 const parsedEnv = envSchema.parse(process.env);
 exports.env = {
@@ -35,4 +49,5 @@ exports.env = {
     supabaseServiceKey: parsedEnv.SUPABASE_SERVICE_ROLE_KEY,
     razorpayKeyId: parsedEnv.RAZORPAY_KEY_ID,
     razorpayKeySecret: parsedEnv.RAZORPAY_KEY_SECRET,
+    requestLoggerEnabled: parsedEnv.NODE_ENV === "test" ? false : parsedEnv.REQUEST_LOGGER_ENABLED,
 };

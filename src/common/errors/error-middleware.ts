@@ -16,7 +16,12 @@ export const errorMiddleware = (
   }
 
   if (error instanceof ZodError) {
-    return sendError(res, "Validation failed", 422, error.flatten());
+    return sendError(
+      res,
+      error.message || "Validation failed",
+      422,
+      error.flatten(),
+    );
   }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

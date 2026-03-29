@@ -14,7 +14,7 @@ type RegisterInput = {
 };
 
 type LoginInput = {
-  identifier: string;
+  email: string;
   password: string;
 };
 
@@ -83,7 +83,8 @@ export const register = async (input: RegisterInput) => {
       phone: input.phone,
       email: input.email,
       passwordHash,
-      isVerified: phoneVerification.isVerified && (emailVerification?.isVerified ?? true),
+      isVerified:
+        phoneVerification.isVerified && (emailVerification?.isVerified ?? true),
     },
     include: {
       hirerProfile: true,
@@ -97,7 +98,7 @@ export const register = async (input: RegisterInput) => {
 export const login = async (input: LoginInput) => {
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ phone: input.identifier }, { email: input.identifier }],
+      OR: [{ phone: input.email }, { email: input.email }],
     },
     include: {
       hirerProfile: true,
@@ -109,7 +110,10 @@ export const login = async (input: LoginInput) => {
     throw new AppError("Invalid credentials", 401);
   }
 
-  const isPasswordValid = await comparePassword(input.password, user.passwordHash);
+  const isPasswordValid = await comparePassword(
+    input.password,
+    user.passwordHash,
+  );
 
   if (!isPasswordValid) {
     throw new AppError("Invalid credentials", 401);

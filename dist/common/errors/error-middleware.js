@@ -10,7 +10,7 @@ const errorMiddleware = (error, _req, res, _next) => {
         return (0, response_1.sendError)(res, error.message, error.statusCode, error.details);
     }
     if (error instanceof zod_1.ZodError) {
-        return (0, response_1.sendError)(res, "Validation failed", 422, error.flatten());
+        return (0, response_1.sendError)(res, error.message || "Validation failed", 422, error.flatten());
     }
     if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {

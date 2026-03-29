@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 
 import { errorMiddleware } from "./common/errors/error-middleware";
+import { requestLogger } from "./common/middleware/request-logger.middleware";
 import { env } from "./config/env";
 import { openApiJsonHandler, scalarDocsHandler } from "./docs/openapi";
 import apiRouter from "./routes";
@@ -17,6 +18,7 @@ app.use(
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
 // Health check
 app.get("/health", (req, res) => {

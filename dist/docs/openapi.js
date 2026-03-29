@@ -1394,4 +1394,7 @@ exports.scalarDocsHandler = (0, express_api_reference_1.apiReference)({
     pageTitle: "Influencer Marketplace API Docs",
     title: "Influencer Marketplace API",
     url: "/openapi.json",
+    agent: {
+        disabled: true,
+    },
 });
