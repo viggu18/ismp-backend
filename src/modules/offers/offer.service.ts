@@ -258,17 +258,17 @@ export const listMyOffers = async (userId: string, role: Role) => {
     where:
       role === Role.HIRER
         ? {
-            campaign: {
-              hirer: {
-                userId,
-              },
-            },
-          }
-        : {
-            influencerProfile: {
+          campaign: {
+            hirer: {
               userId,
             },
           },
+        }
+        : {
+          influencerProfile: {
+            userId,
+          },
+        },
     include: offerInclude,
     orderBy: { createdAt: "desc" },
   });
@@ -302,6 +302,19 @@ export const acceptOffer = async (userId: string, offerId: string) => {
         },
       });
     }
+
+    await tx.contractSnapshot.create({
+      data: {
+        offerId,
+        termsJson: {
+          agreedRate: acceptedOffer.agreedRate,
+          deliverables: acceptedOffer.deliverables,
+          contentDeadline: acceptedOffer.contentDeadline,
+          paymentTerms: acceptedOffer.paymentTerms,
+          revisionLimit: acceptedOffer.revisionLimit,
+        },
+      },
+    });
 
     await createPendingPaymentIfMissing(offerId, acceptedOffer.agreedRate);
 

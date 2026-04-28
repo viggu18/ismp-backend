@@ -10,3 +10,8 @@ export const upsertHirerProfileSchema = z.object({
   city: z.string().max(120).optional().nullable(),
   state: z.string().max(120).optional().nullable(),
 });
+
+export const createSavedSearchSchema = z.object({
+  filterJson: z.record(z.string(), z.any()),
+  alertEnabled: z.boolean().optional(),
+});

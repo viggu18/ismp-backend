@@ -11,6 +11,7 @@ import {
   campaignIdParamSchema,
   createCampaignSchema,
   updateCampaignSchema,
+  updateMetricsSchema,
 } from "./campaign.schemas";
 
 const campaignRouter = Router();
@@ -50,6 +51,13 @@ campaignRouter.post(
   requireRole(Role.HIRER),
   validate({ params: campaignIdParamSchema }),
   asyncHandler(campaignController.closeCampaign),
+);
+
+campaignRouter.patch(
+  "/:campaignId/metrics",
+  requireRole(Role.HIRER),
+  validate({ params: campaignIdParamSchema, body: updateMetricsSchema }),
+  asyncHandler(campaignController.updateMetrics),
 );
 
 export default campaignRouter;

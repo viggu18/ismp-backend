@@ -20,7 +20,10 @@ export const validate =
       }
 
       if (query) {
-        req.query = query.parse(req.query) as Request["query"];
+        const parsed = query.parse(req.query) as Request["query"];
+        // req.query is a getter-only on IncomingMessage — mutate in-place
+        Object.keys(req.query).forEach(k => delete (req.query as Record<string, unknown>)[k]);
+        Object.assign(req.query, parsed);
       }
 
       return next();

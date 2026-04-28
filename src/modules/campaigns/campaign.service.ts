@@ -334,3 +334,49 @@ export const changeCampaignStatus = async (
 
   return updatedCampaign;
 };
+
+type CampaignMetricsInput = {
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  reach?: number;
+  saves?: number;
+  utmClicks?: number;
+};
+
+export const updateMetrics = async (
+  campaignId: string,
+  userId: string,
+  input: CampaignMetricsInput,
+) => {
+  const hirerId = await getHirerProfileId(userId);
+
+  const campaign = await prisma.campaign.findFirst({
+    where: {
+      id: campaignId,
+      hirerId,
+    },
+  });
+
+  if (!campaign) {
+    throw new AppError("Campaign not found", 404);
+  }
+
+  return prisma.campaignMetrics.upsert({
+    where: { campaignId },
+    create: {
+      campaignId,
+      ...input,
+    },
+    update: {
+      views: input.views !== undefined ? { increment: input.views } : undefined,
+      likes: input.likes !== undefined ? { increment: input.likes } : undefined,
+      comments: input.comments !== undefined ? { increment: input.comments } : undefined,
+      shares: input.shares !== undefined ? { increment: input.shares } : undefined,
+      reach: input.reach !== undefined ? { increment: input.reach } : undefined,
+      saves: input.saves !== undefined ? { increment: input.saves } : undefined,
+      utmClicks: input.utmClicks !== undefined ? { increment: input.utmClicks } : undefined,
+    },
+  });
+};

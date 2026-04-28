@@ -244,10 +244,16 @@ export const approveSubmission = async (userId: string, submissionId: string) =>
   return updatedSubmission;
 };
 
+import { Platform } from "@prisma/client";
+
 export const confirmPublish = async (
   userId: string,
   submissionId: string,
-  publishedUrl: string,
+  input: {
+    publishedUrl: string;
+    screenshotUrl: string;
+    platform?: Platform | null;
+  },
 ) => {
   const submission = await prisma.contentSubmission.findFirst({
     where: {
@@ -283,12 +289,25 @@ export const confirmPublish = async (
     throw new AppError("Only approved content can be marked as published", 409);
   }
 
-  const updatedSubmission = await prisma.contentSubmission.update({
-    where: { id: submissionId },
-    data: {
-      publishedUrl,
-      publishedAt: new Date(),
-    },
+  const updatedSubmission = await prisma.$transaction(async (tx) => {
+    const updated = await tx.contentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        publishedUrl: input.publishedUrl,
+        publishedAt: new Date(),
+      },
+    });
+
+    await tx.publishProof.create({
+      data: {
+        submissionId,
+        publishedUrl: input.publishedUrl,
+        screenshotUrl: input.screenshotUrl,
+        platform: input.platform ?? null,
+      },
+    });
+
+    return updated;
   });
 
   await syncCampaignCompletionStatus(submission.offer.campaignId);

@@ -67,3 +67,13 @@ export const closeCampaign = async (req: Request, res: Response) => {
   );
   return sendSuccess(res, campaign, "Campaign closed");
 };
+
+export const updateMetrics = async (req: Request, res: Response) => {
+  const { campaignId } = req.params as { campaignId: string };
+  const metrics = await campaignService.updateMetrics(
+    campaignId,
+    req.currentUser!.userId,
+    req.body,
+  );
+  return sendSuccess(res, metrics, "Campaign metrics updated");
+};

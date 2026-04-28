@@ -45,3 +45,28 @@ export const upsertMyProfile = async (
     },
   });
 };
+
+export const createSavedSearch = async (userId: string, input: { filterJson: any; alertEnabled?: boolean }) => {
+  const user = await getCurrentUserOrThrow(userId);
+  if (user.role !== "HIRER" || !user.hirerProfile) {
+    throw new AppError("Hirer profile required", 403);
+  }
+  return prisma.savedSearch.create({
+    data: {
+      hirerProfileId: user.hirerProfile.id,
+      filterJson: input.filterJson,
+      alertEnabled: input.alertEnabled ?? true,
+    },
+  });
+};
+
+export const listSavedSearches = async (userId: string) => {
+  const user = await getCurrentUserOrThrow(userId);
+  if (user.role !== "HIRER" || !user.hirerProfile) {
+    throw new AppError("Hirer profile required", 403);
+  }
+  return prisma.savedSearch.findMany({
+    where: { hirerProfileId: user.hirerProfile.id },
+    orderBy: { createdAt: "desc" },
+  });
+};

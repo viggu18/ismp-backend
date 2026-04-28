@@ -48,3 +48,13 @@ export const campaignFilterSchema = z.object({
 export const campaignIdParamSchema = z.object({
   campaignId: z.string().uuid(),
 });
+
+export const updateMetricsSchema = z.object({
+  views: z.number().int().nonnegative().optional(),
+  likes: z.number().int().nonnegative().optional(),
+  comments: z.number().int().nonnegative().optional(),
+  shares: z.number().int().nonnegative().optional(),
+  reach: z.number().int().nonnegative().optional(),
+  saves: z.number().int().nonnegative().optional(),
+  utmClicks: z.number().int().nonnegative().optional(),
+});

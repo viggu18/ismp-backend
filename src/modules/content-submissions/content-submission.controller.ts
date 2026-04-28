@@ -46,7 +46,7 @@ export const confirmPublish = async (req: Request, res: Response) => {
   const submission = await contentSubmissionService.confirmPublish(
     req.currentUser!.userId,
     submissionId,
-    req.body.publishedUrl,
+    req.body,
   );
-  return sendSuccess(res, submission, "Publish confirmation recorded");
+  return sendSuccess(res, submission, "Publish confirmation and proof recorded");
 };

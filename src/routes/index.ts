@@ -12,6 +12,7 @@ import notificationRouter from "../modules/notifications/notification.routes";
 import offerRouter from "../modules/offers/offer.routes";
 import paymentRouter from "../modules/payments/payment.routes";
 import reviewRouter from "../modules/reviews/review.routes";
+import disputeRouter from "../modules/disputes/dispute.routes";
 
 const apiRouter = Router();
 
@@ -27,5 +28,6 @@ apiRouter.use("/", paymentRouter);
 apiRouter.use("/", reviewRouter);
 apiRouter.use("/notifications", notificationRouter);
 apiRouter.use("/history", historyRouter);
+apiRouter.use("/disputes", disputeRouter);
 
 export default apiRouter;
