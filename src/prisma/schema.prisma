@@ -21,6 +21,8 @@ enum Platform {
   JOSH
   MOJ
   SHARECHAT
+  TIKTOK
+  TWITTER
 }
 
 enum ContentType {
@@ -216,6 +218,9 @@ model SocialAccount {
   engagementRate      Float?
   isVerified          Boolean           @default(false)   // verified by your team
   lastSyncedAt        DateTime?
+  accessToken         String?
+  refreshToken        String?
+  tokenExpiresAt      DateTime?
 
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt

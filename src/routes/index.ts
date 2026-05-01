@@ -13,6 +13,7 @@ import offerRouter from "../modules/offers/offer.routes";
 import paymentRouter from "../modules/payments/payment.routes";
 import reviewRouter from "../modules/reviews/review.routes";
 import disputeRouter from "../modules/disputes/dispute.routes";
+import socialAuthRouter from "../modules/social-auth/social-auth.routes";
 
 const apiRouter = Router();
 
@@ -29,5 +30,6 @@ apiRouter.use("/", reviewRouter);
 apiRouter.use("/notifications", notificationRouter);
 apiRouter.use("/history", historyRouter);
 apiRouter.use("/disputes", disputeRouter);
+apiRouter.use("/social-auth", socialAuthRouter);
 
 export default apiRouter;
